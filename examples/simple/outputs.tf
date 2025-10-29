@@ -10,22 +10,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-output "security_group_id" {
-  description = "ID of the test security group"
-  value       = aws_security_group.test.id
+output "account_id" {
+  description = "AWS Account ID"
+  value       = module.hello.account_id
 }
 
-output "ingress_rule_id" {
-  description = "ID of the SSH ingress rule"
-  value       = module.ingress_ssh.id
+output "arn" {
+  description = "AWS Caller Identity ARN"
+  value       = module.hello.arn
 }
 
-output "ingress_rule_arn" {
-  description = "ARN of the SSH ingress rule"
-  value       = module.ingress_ssh.arn
-}
-
-output "effective_source" {
-  description = "Effective source for SSH ingress rule"
-  value       = module.ingress_ssh.ingress_rule_effective_source
+output "hello_message" {
+  description = "Hello message"
+  value       = module.hello.hello_message
 }

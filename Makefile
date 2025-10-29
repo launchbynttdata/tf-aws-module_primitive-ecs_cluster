@@ -151,6 +151,8 @@ init-module:
 	echo "Running go mod tidy..."; \
 	go mod tidy; \
 	echo ""; \
+	echo "Removing detect-secrets baseline..."; \
+	rm -f .secrets.baseline; \
 	echo "✅ Module initialization complete!"; \
 	echo ""; \
 	echo "Next steps:"; \
@@ -160,3 +162,9 @@ init-module:
 	echo "  4. Run 'make configure' to set up your development environment"; \
 	echo "  5. Run 'make check' to validate your changes"
 
+.PHONY: secrets-baseline
+secrets-baseline:
+	@echo "Creating new detect-secrets baseline..."
+	detect-secrets scan > .secrets.baseline
+	@echo "✅ Secrets baseline created successfully!"
+	@echo "Review .secrets.baseline to ensure no false positives are included."

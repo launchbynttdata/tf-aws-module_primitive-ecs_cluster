@@ -2,105 +2,70 @@ package testimpl
 
 import (
 	"context"
-	"strings"
+	"regexp"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/ec2"
-	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	testTypes "github.com/launchbynttdata/lcaf-component-terratest/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-const (
-	failedToGetSecurityGroupMsg = "Failed to get security group"
-	failedToFindIngressRuleMsg  = "Failed to find ingress rule"
-)
-
 func TestComposableComplete(t *testing.T, ctx testTypes.TestContext) {
-	ec2Client := GetAWSEC2Client(t)
+	// Get AWS STS client to verify account info
+	stsClient := GetAWSSTSClient(t)
 
-	ingressRuleId := terraform.Output(t, ctx.TerratestTerraformOptions(), "ingress_rule_id")
-	securityGroupId := terraform.Output(t, ctx.TerratestTerraformOptions(), "security_group_id")
-	effectiveSource := terraform.Output(t, ctx.TerratestTerraformOptions(), "effective_source")
+	// Get the actual caller identity from AWS
+	callerIdentity, err := stsClient.GetCallerIdentity(context.TODO(), &sts.GetCallerIdentityInput{})
+	require.NoError(t, err, "Failed to get caller identity from AWS")
 
-	t.Run("TestSecurityGroupIngressRuleExists", func(t *testing.T) {
-		testSecurityGroupIngressRuleExists(t, ec2Client, securityGroupId, ingressRuleId)
+	// Get outputs from Terraform
+	accountId := terraform.Output(t, ctx.TerratestTerraformOptions(), "account_id")
+	arn := terraform.Output(t, ctx.TerratestTerraformOptions(), "arn")
+	helloMessage := terraform.Output(t, ctx.TerratestTerraformOptions(), "hello_message")
+
+	t.Run("TestAccountIdMatches", func(t *testing.T) {
+		testAccountIdMatches(t, callerIdentity, accountId)
 	})
 
-	t.Run("TestSecurityGroupIngressRuleProperties", func(t *testing.T) {
-		testSecurityGroupIngressRuleProperties(t, ec2Client, securityGroupId, ingressRuleId)
+	t.Run("TestArnMatches", func(t *testing.T) {
+		testArnMatches(t, callerIdentity, arn)
 	})
 
-	t.Run("TestEffectiveSource", func(t *testing.T) {
-		testEffectiveSource(t, effectiveSource)
+	t.Run("TestHelloMessage", func(t *testing.T) {
+		testHelloMessage(t, helloMessage)
 	})
 }
 
-func testSecurityGroupIngressRuleExists(t *testing.T, ec2Client *ec2.Client, securityGroupId, ingressRuleId string) {
-	// Get security group
-	sg, err := ec2Client.DescribeSecurityGroups(context.TODO(), &ec2.DescribeSecurityGroupsInput{
-		GroupIds: []string{securityGroupId},
-	})
-	require.NoError(t, err, failedToGetSecurityGroupMsg)
-	require.NotEmpty(t, sg.SecurityGroups, "Security group should exist")
+func testAccountIdMatches(t *testing.T, callerIdentity *sts.GetCallerIdentityOutput, accountId string) {
+	assert.Equal(t, *callerIdentity.Account, accountId, "Account ID from Terraform should match AWS caller identity")
+	assert.NotEmpty(t, accountId, "Account ID should not be empty")
 
-	// Verify security group has at least one ingress rule
-	assert.NotEmpty(t, sg.SecurityGroups[0].IpPermissions, "Security group should have at least one ingress rule")
+	// Verify it's a valid 12-digit account ID
+	matched, _ := regexp.MatchString(`^\d{12}$`, accountId)
+	assert.True(t, matched, "Account ID should be a 12-digit number")
 }
 
-func testSecurityGroupIngressRuleProperties(t *testing.T, ec2Client *ec2.Client, securityGroupId, ingressRuleId string) {
-	// Get security group rules
-	rules, err := ec2Client.DescribeSecurityGroupRules(context.TODO(), &ec2.DescribeSecurityGroupRulesInput{
-		Filters: []types.Filter{
-			{
-				Name:   aws.String("group-id"),
-				Values: []string{securityGroupId},
-			},
-		},
-	})
-	require.NoError(t, err, "Failed to describe security group rules")
+func testArnMatches(t *testing.T, callerIdentity *sts.GetCallerIdentityOutput, arn string) {
+	assert.Equal(t, *callerIdentity.Arn, arn, "ARN from Terraform should match AWS caller identity")
+	assert.NotEmpty(t, arn, "ARN should not be empty")
 
-	// Find the specific ingress rule by ID
-	var ingressRule *types.SecurityGroupRule
-	for i := range rules.SecurityGroupRules {
-		rule := &rules.SecurityGroupRules[i]
-		if rule.SecurityGroupRuleId != nil && *rule.SecurityGroupRuleId == ingressRuleId {
-			ingressRule = rule
-			break
-		}
-	}
-
-	require.NotNil(t, ingressRule, "Ingress rule should be found")
-
-	// Verify basic rule properties (protocol-agnostic)
-	assert.False(t, *ingressRule.IsEgress, "Rule should be an ingress rule")
-	assert.NotNil(t, ingressRule.IpProtocol, "Rule should have a protocol specified")
-
-	// Verify at least one source is set
-	hasSource := ingressRule.CidrIpv4 != nil ||
-		ingressRule.CidrIpv6 != nil ||
-		ingressRule.PrefixListId != nil ||
-		ingressRule.ReferencedGroupInfo != nil
-	assert.True(t, hasSource, "Rule should have at least one source (CIDR, prefix list, or SG)")
+	// Verify it's a valid ARN format
+	matched, _ := regexp.MatchString(`^arn:aws:`, arn)
+	assert.True(t, matched, "ARN should start with 'arn:aws:'")
 }
 
-func testEffectiveSource(t *testing.T, effectiveSource string) {
-	assert.NotEmpty(t, effectiveSource, "Effective source should not be empty")
-	// Verify it has one of the expected prefixes
-	hasValidPrefix := strings.Contains(effectiveSource, "cidr_ipv4:") ||
-		strings.Contains(effectiveSource, "cidr_ipv6:") ||
-		strings.Contains(effectiveSource, "prefix_list:") ||
-		strings.Contains(effectiveSource, "security_group:")
-	assert.True(t, hasValidPrefix, "Effective source should have a valid prefix (cidr_ipv4, cidr_ipv6, prefix_list, or security_group)")
+func testHelloMessage(t *testing.T, helloMessage string) {
+	assert.NotEmpty(t, helloMessage, "Hello message should not be empty")
+	assert.Contains(t, helloMessage, "Hello", "Message should contain 'Hello'")
 }
 
-func GetAWSEC2Client(t *testing.T) *ec2.Client {
-	awsEC2Client := ec2.NewFromConfig(GetAWSConfig(t))
-	return awsEC2Client
+func GetAWSSTSClient(t *testing.T) *sts.Client {
+	awsSTSClient := sts.NewFromConfig(GetAWSConfig(t))
+	return awsSTSClient
 }
 
 func GetAWSConfig(t *testing.T) (cfg aws.Config) {

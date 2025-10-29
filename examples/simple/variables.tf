@@ -10,20 +10,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-variable "resource_name_prefix" {
-  description = "Prefix for resource names"
+variable "hello_message" {
+  description = "A friendly hello message."
   type        = string
-  default     = "sgir-simple"
-}
-
-variable "vpc_cidr" {
-  description = "CIDR block for the VPC"
-  type        = string
-  default     = "10.0.0.0/16"
-}
-
-variable "cidr_ipv4" {
-  description = "IPv4 CIDR block allowed for ingress"
-  type        = string
-  default     = "10.0.1.0/24"
+  default     = "Hello, Terraform!"
 }

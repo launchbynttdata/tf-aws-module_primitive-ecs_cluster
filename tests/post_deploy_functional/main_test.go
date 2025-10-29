@@ -25,26 +25,12 @@ const (
 	infraTFVarFileNameDefault        = "test.tfvars"
 )
 
-func TestLambdaLayerModule(t *testing.T) {
+func TestModule(t *testing.T) {
 
 	ctx := types.CreateTestContextBuilder().
 		SetTestConfig(&testimpl.ThisTFModuleConfig{}).
 		SetTestConfigFolderName(testConfigsExamplesFolderDefault).
 		SetTestConfigFileName(infraTFVarFileNameDefault).
-		SetTestSpecificFlags(map[string]types.TestFlags{
-			"already_zipped": {
-				"IS_TERRAFORM_IDEMPOTENT_APPLY": false,
-			},
-			"from_folder": {
-				"IS_TERRAFORM_IDEMPOTENT_APPLY": false,
-			},
-			"pip_install_pyproject": {
-				"IS_TERRAFORM_IDEMPOTENT_APPLY": false,
-			},
-			"pip_install_requirements": {
-				"IS_TERRAFORM_IDEMPOTENT_APPLY": false,
-			},
-		}).
 		Build()
 
 	lib.RunSetupTestTeardown(t, *ctx, testimpl.TestComposableComplete)
