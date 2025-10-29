@@ -1,0 +1,5 @@
+resource_name_prefix = "sgir-complete-test"
+vpc_cidr             = "10.0.0.0/16"
+ssh_cidr_ipv4        = "10.0.1.0/24"
+https_cidr_ipv4      = "10.0.2.0/24"
+custom_cidr_ipv4     = "10.0.3.0/24"
