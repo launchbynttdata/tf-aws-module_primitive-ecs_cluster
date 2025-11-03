@@ -62,15 +62,5 @@ azure_env.sh
 .releaserc.json
 .tflint.hcl
 
-# Pre-commit hook
-.pre-commit-config.yaml
-
 # VS Code
 .vscode/
-
-# Layer build files
-**/build/
-**/builds/
-**/lambda_layer
-**/lambda_layer.zip
-**/*.egg-info
