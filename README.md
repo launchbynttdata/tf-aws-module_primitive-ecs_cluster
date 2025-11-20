@@ -1,1 +1,0 @@
-# tf-aws-module-template
