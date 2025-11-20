@@ -58,7 +58,6 @@ locals {
 
   # Validation helpers
   fargate_launch_type = var.launch_type == "FARGATE"
-  ec2_launch_type     = var.launch_type == "EC2"
 
   # Platform version validation - only applies to FARGATE
   effective_platform_version = local.fargate_launch_type ? var.platform_version : null
