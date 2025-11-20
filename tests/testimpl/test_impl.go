@@ -2,11 +2,12 @@ package testimpl
 
 import (
 	"context"
-	"regexp"
+	"fmt"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/ecs"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	testTypes "github.com/launchbynttdata/lcaf-component-terratest/types"
@@ -15,52 +16,83 @@ import (
 )
 
 func TestComposableComplete(t *testing.T, ctx testTypes.TestContext) {
-	// Get AWS STS client to verify account info
-	stsClient := GetAWSSTSClient(t)
-
-	// Get the actual caller identity from AWS
-	callerIdentity, err := stsClient.GetCallerIdentity(context.TODO(), &sts.GetCallerIdentityInput{})
-	require.NoError(t, err, "Failed to get caller identity from AWS")
+	// Get AWS ECS client
+	ecsClient := GetAWSECSClient(t)
 
 	// Get outputs from Terraform
-	accountId := terraform.Output(t, ctx.TerratestTerraformOptions(), "account_id")
-	arn := terraform.Output(t, ctx.TerratestTerraformOptions(), "arn")
-	helloMessage := terraform.Output(t, ctx.TerratestTerraformOptions(), "hello_message")
+	serviceName := terraform.Output(t, ctx.TerratestTerraformOptions(), "ecs_service_name")
+	clusterName := terraform.Output(t, ctx.TerratestTerraformOptions(), "ecs_service_cluster")
+	desiredCountStr := terraform.Output(t, ctx.TerratestTerraformOptions(), "ecs_service_desired_count")
+	taskDefinition := terraform.Output(t, ctx.TerratestTerraformOptions(), "ecs_service_task_definition")
+	launchType := terraform.Output(t, ctx.TerratestTerraformOptions(), "ecs_service_launch_type")
 
-	t.Run("TestAccountIdMatches", func(t *testing.T) {
-		testAccountIdMatches(t, callerIdentity, accountId)
+	// Convert desired_count to int
+	desiredCount := 0
+	if desiredCountStr != "" {
+		// Simple conversion, assuming it's a valid number
+		fmt.Sscanf(desiredCountStr, "%d", &desiredCount)
+	}
+
+	t.Run("TestECSServiceExists", func(t *testing.T) {
+		testECSServiceExists(t, ecsClient, serviceName, clusterName)
 	})
 
-	t.Run("TestArnMatches", func(t *testing.T) {
-		testArnMatches(t, callerIdentity, arn)
-	})
-
-	t.Run("TestHelloMessage", func(t *testing.T) {
-		testHelloMessage(t, helloMessage)
+	t.Run("TestECSServiceConfiguration", func(t *testing.T) {
+		testECSServiceConfiguration(t, ecsClient, serviceName, clusterName, desiredCount, taskDefinition, launchType)
 	})
 }
 
-func testAccountIdMatches(t *testing.T, callerIdentity *sts.GetCallerIdentityOutput, accountId string) {
-	assert.Equal(t, *callerIdentity.Account, accountId, "Account ID from Terraform should match AWS caller identity")
-	assert.NotEmpty(t, accountId, "Account ID should not be empty")
+func testECSServiceExists(t *testing.T, ecsClient *ecs.Client, serviceName, clusterName string) {
+	// Describe the service
+	input := &ecs.DescribeServicesInput{
+		Services: []string{serviceName},
+		Cluster:  aws.String(clusterName),
+	}
 
-	// Verify it's a valid 12-digit account ID
-	matched, _ := regexp.MatchString(`^\d{12}$`, accountId)
-	assert.True(t, matched, "Account ID should be a 12-digit number")
+	result, err := ecsClient.DescribeServices(context.TODO(), input)
+	require.NoError(t, err, "Failed to describe ECS service")
+	require.Len(t, result.Services, 1, "Expected exactly one service")
+
+	service := result.Services[0]
+	assert.Equal(t, serviceName, *service.ServiceName, "Service name should match")
+	// Note: ClusterArn is the full ARN, clusterName might be name or ARN
+	assert.Contains(t, *service.ClusterArn, clusterName, "Cluster ARN should contain the cluster name")
+	assert.NotEmpty(t, service.ServiceArn, "Service ARN should not be empty")
 }
 
-func testArnMatches(t *testing.T, callerIdentity *sts.GetCallerIdentityOutput, arn string) {
-	assert.Equal(t, *callerIdentity.Arn, arn, "ARN from Terraform should match AWS caller identity")
-	assert.NotEmpty(t, arn, "ARN should not be empty")
+func testECSServiceConfiguration(t *testing.T, ecsClient *ecs.Client, serviceName, clusterName string, expectedDesiredCount int, expectedTaskDefinition, expectedLaunchType string) {
+	// Describe the service
+	input := &ecs.DescribeServicesInput{
+		Services: []string{serviceName},
+		Cluster:  aws.String(clusterName),
+	}
 
-	// Verify it's a valid ARN format
-	matched, _ := regexp.MatchString(`^arn:aws:`, arn)
-	assert.True(t, matched, "ARN should start with 'arn:aws:'")
+	result, err := ecsClient.DescribeServices(context.TODO(), input)
+	require.NoError(t, err, "Failed to describe ECS service")
+	require.Len(t, result.Services, 1, "Expected exactly one service")
+
+	service := result.Services[0]
+
+	// Check desired count
+	assert.Equal(t, int32(expectedDesiredCount), service.DesiredCount, "Desired count should match")
+
+	// Check task definition
+	assert.Equal(t, expectedTaskDefinition, *service.TaskDefinition, "Task definition should match")
+
+	// Check launch type
+	if expectedLaunchType != "" {
+		assert.Equal(t, expectedLaunchType, string(service.LaunchType), "Launch type should match")
+	}
+
+	// Additional checks
+	assert.NotNil(t, service.ServiceArn, "Service ARN should be present")
+	assert.NotNil(t, service.ClusterArn, "Cluster ARN should be present")
+	assert.True(t, service.ServiceArn != nil && *service.ServiceArn != "", "Service ARN should not be empty")
 }
 
-func testHelloMessage(t *testing.T, helloMessage string) {
-	assert.NotEmpty(t, helloMessage, "Hello message should not be empty")
-	assert.Contains(t, helloMessage, "Hello", "Message should contain 'Hello'")
+func GetAWSECSClient(t *testing.T) *ecs.Client {
+	awsECSClient := ecs.NewFromConfig(GetAWSConfig(t))
+	return awsECSClient
 }
 
 func GetAWSSTSClient(t *testing.T) *sts.Client {

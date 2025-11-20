@@ -1,1 +1,2 @@
-hello_message = "Hello, Terraform!"
+name          = "my-ecs-service"
+desired_count = 2
