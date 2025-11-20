@@ -2,7 +2,7 @@ package testimpl
 
 import (
 	"context"
-	"fmt"
+	"strconv"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -29,8 +29,11 @@ func TestComposableComplete(t *testing.T, ctx testTypes.TestContext) {
 	// Convert desired_count to int
 	desiredCount := 0
 	if desiredCountStr != "" {
-		// Simple conversion, assuming it's a valid number
-		fmt.Sscanf(desiredCountStr, "%d", &desiredCount)
+		var err error
+		desiredCount, err = strconv.Atoi(desiredCountStr)
+		if err != nil {
+			t.Fatalf("Invalid desired count: %s", desiredCountStr)
+		}
 	}
 
 	t.Run("TestECSServiceExists", func(t *testing.T) {
