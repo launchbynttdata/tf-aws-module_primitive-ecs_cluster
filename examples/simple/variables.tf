@@ -21,31 +21,6 @@ variable "desired_count" {
   default     = 1
 }
 
-variable "network_configuration" {
-  description = "Network configuration for the ECS service"
-  type = object({
-    subnets          = list(string)
-    security_groups  = list(string)
-    assign_public_ip = optional(bool, false)
-  })
-  default = null
-
-  validation {
-    condition = var.network_configuration == null || (
-      length(var.network_configuration.subnets) > 0 &&
-      alltrue([for subnet in var.network_configuration.subnets : can(regex("^subnet-[a-z0-9]+$", subnet))])
-    )
-    error_message = "Network configuration subnets must be valid subnet IDs when specified."
-  }
-
-  validation {
-    condition = var.network_configuration == null || (
-      alltrue([for sg in var.network_configuration.security_groups : can(regex("^sg-[a-z0-9]+$", sg))])
-    )
-    error_message = "Network configuration security groups must be valid security group IDs when specified."
-  }
-}
-
 variable "availability_zone" {
   description = "Availability zone for the subnet"
   type        = string
