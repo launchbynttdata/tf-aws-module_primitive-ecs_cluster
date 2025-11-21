@@ -11,18 +11,21 @@
 // limitations under the License.
 
 variable "name" {
-  description = "Name for the ECS service"
+  description = "Name of the ECS cluster"
   type        = string
 }
 
-variable "desired_count" {
-  description = "The number of instances of the task definition to place and keep running"
-  type        = number
-  default     = 1
+variable "settings" {
+  description = "Settings for the ECS cluster"
+  type = list(object({
+    name  = string
+    value = string
+  }))
+  default = []
 }
 
-variable "availability_zone" {
-  description = "Availability zone for the subnet"
-  type        = string
-  default     = "us-east-2a"
+variable "tags" {
+  description = "Tags for the ECS cluster"
+  type        = map(string)
+  default     = {}
 }

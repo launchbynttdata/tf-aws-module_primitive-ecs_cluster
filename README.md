@@ -1,38 +1,29 @@
-# tf-aws-module_primitive-ecs_service
+# tf-aws-module_primitive-ecs_cluster
 
-This module provides a primitive Terraform module for creating an Amazon ECS service with support for various configurations including load balancers, service discovery, and more.
+This module provides a primitive Terraform module for creating an Amazon ECS cluster with support for various configurations including container insights, execute command configuration, and service connect defaults.
 
 ## Features
 
-- Supports Fargate and EC2 launch types
-- Configurable network settings with subnets and security groups
-- Load balancer integration
-- Service Connect for service-to-service communication
-- Service discovery registries
-- Capacity provider strategies
-- Deployment configurations with circuit breakers and alarms
-- Volume configurations for EBS attachments
-- ECS Exec support
-- Comprehensive tagging and managed tags
+- Configurable cluster settings (Container Insights)
+- Execute command configuration with logging
+- Managed storage configuration for Fargate ephemeral storage encryption
+- Service Connect defaults
+- Comprehensive tagging
 
 ## Usage
 
 ```hcl
-module "ecs_service" {
+module "ecs_cluster" {
   source = "path/to/module"
 
-  name            = "my-ecs-service"
-  cluster         = aws_ecs_cluster.example.arn
-  task_definition = aws_ecs_task_definition.example.arn
+  name = "my-ecs-cluster"
 
-  desired_count = 2
-  launch_type   = "FARGATE"
-
-  network_configuration = {
-    subnets          = [aws_subnet.example.id]
-    security_groups  = [aws_security_group.example.id]
-    assign_public_ip = false
-  }
+  settings = [
+    {
+      name  = "containerInsights"
+      value = "enabled"
+    }
+  ]
 
   tags = {
     Environment = "dev"
@@ -42,8 +33,7 @@ module "ecs_service" {
 
 ## Resources Created
 
-- 1 ECS Service
-- 1 Service Discovery Service (data source, if Service Connect lookup is configured)
+- 1 ECS Cluster
 
 <!-- BEGIN_TF_DOCS -->
 ## Requirements

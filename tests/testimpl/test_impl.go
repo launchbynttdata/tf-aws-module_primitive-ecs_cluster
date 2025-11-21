@@ -14,12 +14,12 @@ package testimpl
 
 import (
 	"context"
-	"strconv"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ecs"
+	"github.com/aws/aws-sdk-go-v2/service/ecs/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	testTypes "github.com/launchbynttdata/lcaf-component-terratest/types"
@@ -32,77 +32,108 @@ func TestComposableComplete(t *testing.T, ctx testTypes.TestContext) {
 	ecsClient := GetAWSECSClient(t)
 
 	// Get outputs from Terraform
-	serviceName := terraform.Output(t, ctx.TerratestTerraformOptions(), "ecs_service_name")
-	clusterName := terraform.Output(t, ctx.TerratestTerraformOptions(), "ecs_service_cluster")
-	desiredCountStr := terraform.Output(t, ctx.TerratestTerraformOptions(), "ecs_service_desired_count")
-	taskDefinition := terraform.Output(t, ctx.TerratestTerraformOptions(), "ecs_service_task_definition")
-	launchType := terraform.Output(t, ctx.TerratestTerraformOptions(), "ecs_service_launch_type")
+	clusterName := terraform.Output(t, ctx.TerratestTerraformOptions(), "ecs_cluster_name")
+	clusterArn := terraform.Output(t, ctx.TerratestTerraformOptions(), "ecs_cluster_arn")
+	clusterTags := terraform.OutputMap(t, ctx.TerratestTerraformOptions(), "ecs_cluster_tags_all")
 
-	// Convert desired_count to int
-	desiredCount := 0
-	if desiredCountStr != "" {
-		var err error
-		desiredCount, err = strconv.Atoi(desiredCountStr)
-		if err != nil {
-			t.Fatalf("Invalid desired count: %s", desiredCountStr)
+	t.Run("TestECSClusterExists", func(t *testing.T) {
+		testECSClusterExists(t, ecsClient, clusterName, clusterArn)
+	})
+
+	t.Run("TestECSClusterConfiguration", func(t *testing.T) {
+		testECSClusterConfiguration(t, ecsClient, clusterName)
+	})
+
+	t.Run("TestECSClusterTags", func(t *testing.T) {
+		testECSClusterTags(t, ecsClient, clusterName, clusterTags)
+	})
+}
+
+func testECSClusterExists(t *testing.T, ecsClient *ecs.Client, clusterName, clusterArn string) {
+	// Describe the cluster
+	input := &ecs.DescribeClustersInput{
+		Clusters: []string{clusterName},
+	}
+
+	result, err := ecsClient.DescribeClusters(context.TODO(), input)
+	require.NoError(t, err, "Failed to describe ECS cluster")
+	require.Len(t, result.Clusters, 1, "Expected exactly one cluster")
+
+	cluster := result.Clusters[0]
+	assert.Equal(t, clusterName, *cluster.ClusterName, "Cluster name should match")
+	assert.Equal(t, clusterArn, *cluster.ClusterArn, "Cluster ARN should match")
+	assert.NotEmpty(t, cluster.ClusterArn, "Cluster ARN should not be empty")
+}
+
+func testECSClusterConfiguration(t *testing.T, ecsClient *ecs.Client, clusterName string) {
+	// Describe the cluster
+	input := &ecs.DescribeClustersInput{
+		Clusters: []string{clusterName},
+		Include:  []types.ClusterField{types.ClusterFieldSettings},
+	}
+
+	result, err := ecsClient.DescribeClusters(context.TODO(), input)
+	require.NoError(t, err, "Failed to describe ECS cluster")
+	require.Len(t, result.Clusters, 1, "Expected exactly one cluster")
+
+	cluster := result.Clusters[0]
+
+	// Check that cluster is active
+	assert.Equal(t, "ACTIVE", *cluster.Status, "Cluster should be ACTIVE")
+
+	// Check settings
+	expectedSettings := map[string]string{
+		"containerInsights": "enabled",
+	}
+
+	if cluster.Settings != nil && len(cluster.Settings) > 0 {
+		actualSettings := make(map[string]string)
+		for _, setting := range cluster.Settings {
+			actualSettings[string(setting.Name)] = *setting.Value
+		}
+
+		for name, expectedValue := range expectedSettings {
+			actualValue, exists := actualSettings[name]
+			assert.True(t, exists, "Expected setting %s to exist", name)
+			if exists {
+				assert.Equal(t, expectedValue, actualValue, "Setting %s should have value %s", name, expectedValue)
+			}
 		}
 	}
 
-	t.Run("TestECSServiceExists", func(t *testing.T) {
-		testECSServiceExists(t, ecsClient, serviceName, clusterName)
-	})
-
-	t.Run("TestECSServiceConfiguration", func(t *testing.T) {
-		testECSServiceConfiguration(t, ecsClient, serviceName, clusterName, desiredCount, taskDefinition, launchType)
-	})
-}
-
-func testECSServiceExists(t *testing.T, ecsClient *ecs.Client, serviceName, clusterName string) {
-	// Describe the service
-	input := &ecs.DescribeServicesInput{
-		Services: []string{serviceName},
-		Cluster:  aws.String(clusterName),
-	}
-
-	result, err := ecsClient.DescribeServices(context.TODO(), input)
-	require.NoError(t, err, "Failed to describe ECS service")
-	require.Len(t, result.Services, 1, "Expected exactly one service")
-
-	service := result.Services[0]
-	assert.Equal(t, serviceName, *service.ServiceName, "Service name should match")
-	// Note: ClusterArn is the full ARN, clusterName might be name or ARN
-	assert.Contains(t, *service.ClusterArn, clusterName, "Cluster ARN should contain the cluster name")
-	assert.NotEmpty(t, service.ServiceArn, "Service ARN should not be empty")
-}
-
-func testECSServiceConfiguration(t *testing.T, ecsClient *ecs.Client, serviceName, clusterName string, expectedDesiredCount int, expectedTaskDefinition, expectedLaunchType string) {
-	// Describe the service
-	input := &ecs.DescribeServicesInput{
-		Services: []string{serviceName},
-		Cluster:  aws.String(clusterName),
-	}
-
-	result, err := ecsClient.DescribeServices(context.TODO(), input)
-	require.NoError(t, err, "Failed to describe ECS service")
-	require.Len(t, result.Services, 1, "Expected exactly one service")
-
-	service := result.Services[0]
-
-	// Check desired count
-	assert.Equal(t, int32(expectedDesiredCount), service.DesiredCount, "Desired count should match")
-
-	// Check task definition
-	assert.Equal(t, expectedTaskDefinition, *service.TaskDefinition, "Task definition should match")
-
-	// Check launch type
-	if expectedLaunchType != "" {
-		assert.Equal(t, expectedLaunchType, string(service.LaunchType), "Launch type should match")
-	}
-
 	// Additional checks
-	assert.NotNil(t, service.ServiceArn, "Service ARN should be present")
-	assert.NotNil(t, service.ClusterArn, "Cluster ARN should be present")
-	assert.True(t, service.ServiceArn != nil && *service.ServiceArn != "", "Service ARN should not be empty")
+	assert.NotNil(t, cluster.ClusterArn, "Cluster ARN should be present")
+	assert.True(t, cluster.ClusterArn != nil && *cluster.ClusterArn != "", "Cluster ARN should not be empty")
+}
+
+func testECSClusterTags(t *testing.T, ecsClient *ecs.Client, clusterName string, expectedTags map[string]string) {
+	// Describe the cluster
+	input := &ecs.DescribeClustersInput{
+		Clusters: []string{clusterName},
+		Include:  []types.ClusterField{types.ClusterFieldTags},
+	}
+
+	result, err := ecsClient.DescribeClusters(context.TODO(), input)
+	require.NoError(t, err, "Failed to describe ECS cluster")
+	require.Len(t, result.Clusters, 1, "Expected exactly one cluster")
+
+	cluster := result.Clusters[0]
+
+	// Check tags
+	if cluster.Tags != nil && len(cluster.Tags) > 0 {
+		actualTags := make(map[string]string)
+		for _, tag := range cluster.Tags {
+			actualTags[*tag.Key] = *tag.Value
+		}
+
+		for key, expectedValue := range expectedTags {
+			actualValue, exists := actualTags[key]
+			assert.True(t, exists, "Expected tag %s to exist", key)
+			if exists {
+				assert.Equal(t, expectedValue, actualValue, "Tag %s should have value %s", key, expectedValue)
+			}
+		}
+	}
 }
 
 func GetAWSECSClient(t *testing.T) *ecs.Client {

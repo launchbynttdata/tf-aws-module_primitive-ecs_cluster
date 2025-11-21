@@ -11,20 +11,9 @@
 // limitations under the License.
 
 # =======================================================================
-# ECS SERVICE PRIMITIVE MODULE - DATA SOURCES
+# ECS CLUSTER PRIMITIVE MODULE - DATA SOURCES
 # =======================================================================
-# This file contains data sources for the ECS service primitive module.
+# This file contains data sources for the ECS cluster primitive module.
 # =======================================================================
 
-# Data source to look up Service Connect services
-# This can be used to find the Service Discovery service ARN created by Service Connect
-# when service_connect_configuration is enabled with a service
-data "aws_service_discovery_service" "service_connect" {
-  count = local.service_connect_service_configured && var.service_connect_discovery_name != null ? 1 : 0
-
-  name         = var.service_connect_discovery_name
-  namespace_id = var.service_connect_namespace_id
-
-  # Add dependency to ensure the ECS service is created first
-  depends_on = [aws_ecs_service.this]
-}
+# No data sources required for the ECS cluster module
