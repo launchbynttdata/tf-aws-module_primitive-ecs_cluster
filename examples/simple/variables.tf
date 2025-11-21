@@ -10,11 +10,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-variable "name" {
-  description = "Name of the ECS cluster"
-  type        = string
-}
-
 variable "settings" {
   description = "Settings for the ECS cluster"
   type = list(object({
@@ -28,4 +23,34 @@ variable "tags" {
   description = "Tags for the ECS cluster"
   type        = map(string)
   default     = {}
+}
+
+variable "logical_product_family" {
+  description = "Logical product family"
+  type        = string
+  default     = "demo"
+}
+
+variable "logical_product_service" {
+  description = "Logical product service"
+  type        = string
+  default     = "ecs"
+}
+
+variable "region" {
+  description = "AWS region"
+  type        = string
+  default     = "us-east-1"
+}
+
+variable "class_env" {
+  description = "Class environment"
+  type        = string
+  default     = "dev"
+}
+
+variable "cloud_resource_type" {
+  description = "Cloud resource type"
+  type        = string
+  default     = "ecs"
 }

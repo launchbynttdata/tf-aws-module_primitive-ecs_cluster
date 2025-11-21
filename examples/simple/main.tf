@@ -10,10 +10,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+module "naming" {
+  source = "git::https://github.com/launchbynttdata/tf-launch-module_library-resource_name.git"
+
+  logical_product_family  = var.logical_product_family
+  logical_product_service = var.logical_product_service
+  region                  = var.region
+  class_env               = var.class_env
+  cloud_resource_type     = var.cloud_resource_type
+}
+
 module "ecs_cluster" {
   source = "../../"
 
-  name = var.name
+  name = module.naming.standard
 
   settings = var.settings
 
