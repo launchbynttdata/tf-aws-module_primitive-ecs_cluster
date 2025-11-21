@@ -11,7 +11,8 @@
 // limitations under the License.
 
 module "naming" {
-  source = "git::https://github.com/launchbynttdata/tf-launch-module_library-resource_name.git"
+  source  = "terraform.registry.launch.nttdata.com/module_primitive/resource_name/aws"
+  version = "~> 2.0"
 
   logical_product_family  = var.logical_product_family
   logical_product_service = var.logical_product_service
