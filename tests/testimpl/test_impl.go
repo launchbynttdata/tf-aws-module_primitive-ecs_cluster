@@ -86,7 +86,7 @@ func testECSClusterConfiguration(t *testing.T, ecsClient *ecs.Client, clusterNam
 		"containerInsights": "enabled",
 	}
 
-	if cluster.Settings != nil && len(cluster.Settings) > 0 {
+	if len(cluster.Settings) > 0 {
 		actualSettings := make(map[string]string)
 		for _, setting := range cluster.Settings {
 			actualSettings[string(setting.Name)] = *setting.Value
@@ -120,7 +120,7 @@ func testECSClusterTags(t *testing.T, ecsClient *ecs.Client, clusterName string,
 	cluster := result.Clusters[0]
 
 	// Check tags
-	if cluster.Tags != nil && len(cluster.Tags) > 0 {
+	if len(cluster.Tags) > 0 {
 		actualTags := make(map[string]string)
 		for _, tag := range cluster.Tags {
 			actualTags[*tag.Key] = *tag.Value
