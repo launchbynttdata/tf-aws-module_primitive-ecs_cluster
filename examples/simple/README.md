@@ -1,12 +1,11 @@
 # Simple Example
 
-This example provides a basic test case for the `tf-aws-module_primitive-vpc_security_group_ingress_rule` module, used primarily for integration testing.
+This example provides a basic test case for the `tf-aws-module_primitive-ecs_cluster` module, used primarily for integration testing.
 
 ## Features
 
-- Single SSH ingress rule (port 22)
-- IPv4 CIDR source
-- Basic configuration
+- Basic ECS cluster configuration
+- Optional settings and tags
 
 ## Usage
 
@@ -19,9 +18,7 @@ terraform destroy -var-file=test.tfvars
 
 ## Resources Created
 
-- 1 VPC
-- 1 Security Group
-- 1 Security Group Ingress Rule
+- 1 ECS Cluster
 
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
