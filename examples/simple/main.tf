@@ -11,7 +11,7 @@
 // limitations under the License.
 
 module "naming" {
-  source  = "terraform.registry.launch.nttdata.com/module_library/resource_name/aws"
+  source  = "terraform.registry.launch.nttdata.com/module_library/resource_name/launch"
   version = "~> 2.0"
 
   logical_product_family  = var.logical_product_family
