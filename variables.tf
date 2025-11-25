@@ -95,7 +95,7 @@ variable "configuration" {
   default = null
 
   validation {
-    condition     = var.configuration == null || var.configuration.execute_command_configuration == null || contains(["NONE", "DEFAULT", "OVERRIDE"], var.configuration.execute_command_configuration.logging)
+    condition     = var.configuration == null || try(contains(["NONE", "DEFAULT", "OVERRIDE"], var.configuration.execute_command_configuration.logging), true)
     error_message = "Execute command logging must be one of: NONE, DEFAULT, OVERRIDE."
   }
 
