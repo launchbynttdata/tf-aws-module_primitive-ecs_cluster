@@ -133,6 +133,7 @@ endif
 # golangci-lint via go tool (go.mod tool directive)
 GO ?= go
 GOLANGCI_LINT := $(GO) tool golangci-lint
+ifeq ($(wildcard $(COMPONENTS_DIR)/Makefile),)
 # Minimal lint when components/ is not synced
 GO_TEST_DIRECTORIES ?= tests
 GOLANGCI_LINT_CONFIG ?= .golangci.yaml
@@ -144,3 +145,4 @@ lint:
 	$(FIND) $(GO_TEST_DIRECTORIES)/ -name '*.go' | $(GREP) -q '\.go' || exit 0; $(GOLANGCI_LINT) run -c $(GOLANGCI_LINT_CONFIG) -v ./$(GO_TEST_DIRECTORIES)/...;
 
 check: lint
+endif
