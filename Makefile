@@ -130,10 +130,10 @@ init-clean:
 ifneq (,$(wildcard ./TEMPLATED_README.md))
 	mv TEMPLATED_README.md README.MD
 endif
+ifeq ($(wildcard $(COMPONENTS_DIR)/Makefile),)
 # golangci-lint via go tool (go.mod tool directive)
 GO ?= go
 GOLANGCI_LINT := $(GO) tool golangci-lint
-ifeq ($(wildcard $(COMPONENTS_DIR)/Makefile),)
 # Minimal lint when components/ is not synced
 GO_TEST_DIRECTORIES ?= tests
 GOLANGCI_LINT_CONFIG ?= .golangci.yaml
