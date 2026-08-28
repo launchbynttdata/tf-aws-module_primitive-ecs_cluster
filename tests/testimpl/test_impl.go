@@ -32,9 +32,9 @@ func TestComposableComplete(t *testing.T, ctx testTypes.TestContext) {
 	ecsClient := GetAWSECSClient(t)
 
 	// Get outputs from Terraform
-	clusterName := terraform.Output(t, ctx.TerratestTerraformOptions(), "ecs_cluster_name")
-	clusterArn := terraform.Output(t, ctx.TerratestTerraformOptions(), "ecs_cluster_arn")
-	clusterTags := terraform.OutputMap(t, ctx.TerratestTerraformOptions(), "ecs_cluster_tags_all")
+	clusterName := terraform.OutputContext(t, context.Background(), ctx.TerratestTerraformOptions(), "ecs_cluster_name")
+	clusterArn := terraform.OutputContext(t, context.Background(), ctx.TerratestTerraformOptions(), "ecs_cluster_arn")
+	clusterTags := terraform.OutputMapContext(t, context.Background(), ctx.TerratestTerraformOptions(), "ecs_cluster_tags_all")
 
 	t.Run("TestECSClusterExists", func(t *testing.T) {
 		testECSClusterExists(t, ecsClient, clusterName, clusterArn)
