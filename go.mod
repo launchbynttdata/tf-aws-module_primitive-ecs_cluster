@@ -7,7 +7,7 @@ tool github.com/golangci/golangci-lint/v2/cmd/golangci-lint
 require (
 	github.com/aws/aws-sdk-go-v2 v1.45.1
 	github.com/aws/aws-sdk-go-v2/config v1.33.1
-	github.com/aws/aws-sdk-go-v2/service/ecs v1.92.1
+	github.com/aws/aws-sdk-go-v2/service/ecs v1.93.0
 	github.com/aws/aws-sdk-go-v2/service/sts v1.47.1
 	github.com/gruntwork-io/terratest v1.0.1
 	github.com/launchbynttdata/lcaf-component-terratest v1.0.4
