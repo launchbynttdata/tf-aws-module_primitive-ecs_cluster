@@ -1,8 +1,10 @@
+.DS_Store
+Thumbs.db
+
 terraform.*
 .repo/
 components/
 .semverbot.toml
-vendor/
 
 .idea
 !examples/*.tfvars
@@ -61,4 +63,3 @@ azure_env.sh
 
 # VS Code
 .vscode/
-.terraform

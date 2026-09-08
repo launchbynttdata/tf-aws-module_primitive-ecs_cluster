@@ -151,3 +151,7 @@ func GetAWSConfig(t *testing.T) (cfg aws.Config) {
 	require.NoErrorf(t, err, "unable to load SDK config, %v", err)
 	return cfg
 }
+
+func TestComposableReadonlyComplete(t *testing.T, ctx testTypes.TestContext) {
+	TestComposableComplete(t, ctx)
+}

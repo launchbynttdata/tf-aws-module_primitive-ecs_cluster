@@ -1,42 +1,23 @@
-# Simple Example
+# Simple ECS cluster example
 
-This example provides a basic test case for the `tf-aws-module_primitive-ecs_cluster` module, used primarily for integration testing.
+This example creates an ECS cluster with optional settings and tags using the root module from `examples/simple/main.tf`.
 
-## Features
-
-- Basic ECS cluster configuration
-- Optional settings and tags
-
-## Usage
-
-```bash
-terraform init
-terraform plan -var-file=test.tfvars
-terraform apply -var-file=test.tfvars
-terraform destroy -var-file=test.tfvars
-```
-
-## Resources Created
-
-- 1 ECS Cluster
+The repository Makefile generates `provider.tf` when you run `make lint` or `make test` from the repository root. Sign in to AWS first.
 
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
 
 | Name | Version |
 |------|---------|
-| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | ~> 1.0 |
+| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | ~> 1.5 |
 | <a name="requirement_aws"></a> [aws](#requirement\_aws) | ~> 5.100 |
-
-## Providers
-
-No providers.
 
 ## Modules
 
 | Name | Source | Version |
 |------|--------|---------|
 | <a name="module_ecs_cluster"></a> [ecs\_cluster](#module\_ecs\_cluster) | ../../ | n/a |
+| <a name="module_naming"></a> [naming](#module\_naming) | terraform.registry.launch.nttdata.com/module_library/resource_name/launch | ~> 2.0 |
 
 ## Resources
 
@@ -46,7 +27,11 @@ No resources.
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| <a name="input_name"></a> [name](#input\_name) | Name of the ECS cluster | `string` | n/a | yes |
+| <a name="input_class_env"></a> [class\_env](#input\_class\_env) | Class environment | `string` | `"dev"` | no |
+| <a name="input_cloud_resource_type"></a> [cloud\_resource\_type](#input\_cloud\_resource\_type) | Cloud resource type | `string` | `"ecs"` | no |
+| <a name="input_logical_product_family"></a> [logical\_product\_family](#input\_logical\_product\_family) | Logical product family | `string` | `"demo"` | no |
+| <a name="input_logical_product_service"></a> [logical\_product\_service](#input\_logical\_product\_service) | Logical product service | `string` | `"ecs"` | no |
+| <a name="input_region"></a> [region](#input\_region) | AWS region | `string` | `"us-east-1"` | no |
 | <a name="input_settings"></a> [settings](#input\_settings) | Settings for the ECS cluster | <pre>list(object({<br/>    name  = string<br/>    value = string<br/>  }))</pre> | `[]` | no |
 | <a name="input_tags"></a> [tags](#input\_tags) | Tags for the ECS cluster | `map(string)` | `{}` | no |
 

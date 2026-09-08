@@ -100,8 +100,10 @@ variable "configuration" {
   }
 
   validation {
-    condition = var.configuration == null || var.configuration.managed_storage_configuration == null || can(
-      regex("^arn:aws:kms:[a-z0-9-]+:[0-9]{12}:key/[a-f0-9-]+$", var.configuration.managed_storage_configuration.kms_key_id)
+    condition = (
+      var.configuration == null ||
+      try(var.configuration.managed_storage_configuration, null) == null ||
+      can(regex("^arn:aws:kms:[a-z0-9-]+:[0-9]{12}:key/[a-f0-9-]+$", var.configuration.managed_storage_configuration.kms_key_id))
     )
     error_message = "KMS key ID must be a valid KMS key ARN."
   }
